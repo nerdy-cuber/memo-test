@@ -8,7 +8,7 @@ fn main() -> Result<(), eframe::Error> {
     app.gen_pairs();
     // app.letter_pairs = gen_pairs();
     eframe::run_native(
-        "deez nuts",
+        "memo test",
         options,
         Box::new(|_cc| Ok(Box::new(app))),
     )
