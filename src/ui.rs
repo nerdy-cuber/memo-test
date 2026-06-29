@@ -1,8 +1,8 @@
-use egui::TextEdit;
+use egui::{RichText, TextEdit};
 use rand::Rng;
 use std::time::{Duration, Instant};
 
-#[derive(Default)]
+
 pub struct MemoApp {
     pub letter_pairs: String,
     /// When the timer was last started
@@ -12,11 +12,31 @@ pub struct MemoApp {
     pub user_input: String,
     pub show_text: bool,
     pub show_answer: bool,
+    pub num_pairs: usize,
+}
+
+impl Default for MemoApp {
+    fn default() -> Self {
+        Self {
+            letter_pairs: String::new(),
+            start_time: None,
+            elapsed: Duration::ZERO,
+            started: false,
+            user_input: String::new(),
+            show_text: false,
+            show_answer: false,
+            num_pairs: 12,
+        }
+    }
 }
 
 impl eframe::App for MemoApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // println!("{}", self.letter_pairs);
         ctx.input(|i| {
+            if i.key_pressed(egui::Key::Space) && !self.is_running() && !self.show_answer && !self.show_text {
+                self.gen_pairs(self.num_pairs);
+            }
             if i.key_pressed(egui::Key::Space) && !self.show_text && !self.show_answer {
                 self.started = true;
                 self.toggle_timer();
@@ -26,7 +46,6 @@ impl eframe::App for MemoApp {
                 self.started = false;
                 self.reset_timer();
                 self.user_input.clear();
-                self.gen_pairs();
             }
         });
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -53,13 +72,23 @@ impl eframe::App for MemoApp {
             }
 
             self.help_label(ui);
+
+            egui::Area::new("bottom_right_slider".into())
+                .anchor(egui::Align2::RIGHT_BOTTOM, [-20.0, -30.0])
+                .show(ctx, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(RichText::new("Size:").monospace());
+
+                        ui.add(egui::Slider::new(&mut self.num_pairs, 1..=100).show_value(true));
+                    });
+                });
         });
         ctx.request_repaint();
     }
 }
 
 impl MemoApp {
-    fn pairs(&self, ui: &mut egui::Ui) {
+    fn pairs(&mut self, ui: &mut egui::Ui) {
         // egui::Grid::new("grid")
         //     .num_columns(4)
         //     .min_col_width(0.0)
@@ -107,8 +136,9 @@ impl MemoApp {
         egui::TopBottomPanel::bottom("bottom_left").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label(
-            egui::RichText::new(format!("{:.1}s", self.current_time().as_secs_f64())).monospace(),
-        );
+                    egui::RichText::new(format!("{:.1}s", self.current_time().as_secs_f64()))
+                        .monospace(),
+                );
             })
         });
     }
@@ -120,7 +150,7 @@ impl MemoApp {
         );
     }
 
-    pub fn gen_pairs(&mut self) {
+    pub fn gen_pairs(&mut self, num: usize) {
         fn parse_pairs(input: Vec<String>) -> String {
             let mut res = String::new();
             for (i, str) in input.iter().enumerate() {
@@ -135,7 +165,7 @@ impl MemoApp {
 
         let mut rng = rand::rng();
         self.letter_pairs = parse_pairs(
-            (0..24)
+            (0..num)
                 .map(|_| {
                     loop {
                         let a = scheme[rng.random_range(0..23)];
